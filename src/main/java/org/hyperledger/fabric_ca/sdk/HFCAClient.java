@@ -452,9 +452,7 @@ public class HFCAClient {
         try {
             String pem = req.getCsr();
             KeyPair keypair = req.getKeyPair();
-            if (null != pem && keypair == null) {
-                throw new InvalidArgumentException("If certificate signing request is supplied the key pair needs to be supplied too.");
-            }
+
             if (keypair == null) {
                 logger.debug("[HFCAClient.enroll] Generating keys...");
 
@@ -472,6 +470,14 @@ public class HFCAClient {
             if (caName != null && !caName.isEmpty()) {
                 req.setCAName(caName);
             }
+
+            // Setting keypair to null in the request object before sending to CA server
+            // since Fabric CA only requires the CSR for certificate issuance, not the private key.
+            // This enables secure deployment scenarios using HSMs or secure key storage
+            // where private keys must never leave their secure environment.
+            req.setKeyPair(null);
+
+
             String body = req.toJson();
 
             String responseBody = httpPost(getURL(HFCA_ENROLL), body,
